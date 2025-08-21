@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>文件中心</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/fancybox.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/dropzone.min.css') }}">
+    <script src="{{ url_for('static', filename='js/feather.min.js') }}"></script>
+    <style>
+        :root{--primary-color:#007bff;--background-color:#f8f9fa;--text-color:#212529;--border-color:#dee2e6;--hover-bg-color:#e9ecef;--header-height:60px;--folder-icon-color:#007bff;--file-icon-color:#6c757d}
+        body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;margin:0;background-color:var(--background-color);color:var(--text-color);display:flex;height:100vh;flex-direction:column}
+        header{height:var(--header-height);background-color:#fff;border-bottom:1px solid var(--border-color);display:flex;align-items:center;padding:0 24px;flex-shrink:0}
+        .logo{font-size:1.5rem;font-weight:600;color:var(--primary-color);text-decoration:none;margin-right:auto}
+        .search-form { display: flex; align-items: center; }
+        .search-form input[type="search"] { padding: 6px 10px; font-size: 14px; border: 1px solid var(--border-color); border-radius: 5px 0 0 5px; min-width: 250px; }
+        .search-form button { padding: 6px 12px; border: 1px solid var(--border-color); border-left: none; background-color: #f8f9fa; cursor: pointer; border-radius: 0 5px 5px 0; display: flex; align-items: center; }
+        .search-form button:hover { background-color: #e9ecef; }
+        .logout-btn { margin-left: 20px; color: var(--text-color); text-decoration: none; display: flex; align-items: center; gap: 5px; }
+        .logout-btn:hover { color: var(--primary-color); }
+        .main-content{display:flex;flex-grow:1;overflow:hidden}
+        nav.sidebar{width:240px;background-color:#fff;border-right:1px solid var(--border-color);padding:20px;flex-shrink:0;overflow-y:auto}
+        .sidebar button{width:100%;padding:10px 15px;margin-bottom:10px;background-color:var(--primary-color);color:white;border:none;border-radius:5px;cursor:pointer;text-align:center;font-size:1rem}
+        .sidebar .dropzone{min-height:120px;width:100%;padding:10px 15px;margin-bottom:10px;border:2px dashed var(--border-color);border-radius:5px;background-color:var(--background-color);color:var(--text-color);display:flex;align-items:center;justify-content:center}
+        .sidebar .dz-message{margin:0;text-align:center}
+        .upload-history{margin-top:20px}
+        .upload-history h4{font-size:1rem;color:#6c757d;margin-bottom:10px;display:flex;justify-content:space-between;align-items:center}
+        .upload-history h4 .clear-btn{font-size:.8rem;color:var(--primary-color);cursor:pointer;text-decoration:none}
+        .upload-history ul{list-style:none;padding:0;margin:0}
+        .upload-history li{font-size:.9rem;padding:5px 0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#495057}
+        .content-area{flex-grow:1;padding:24px;overflow-y:auto}
+        .toolbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px}
+        .breadcrumbs ol{list-style:none;padding:0;margin:0;display:flex;align-items:center}.breadcrumbs li{display:flex;align-items:center}.breadcrumbs a{color:var(--primary-color);text-decoration:none}.breadcrumbs li::after{content:'/';margin:0 8px;color:#6c757d}.breadcrumbs li:last-child::after{content:''}
+        table{width:100%;border-collapse:collapse}
+        th,td{padding:12px 15px;text-align:left;border-bottom:1px solid var(--border-color);vertical-align:middle}
+        th{background-color:#f8f9fa;font-weight:600}
+        th a{color:inherit;text-decoration:none;display:flex;align-items:center}
+        th a:hover{color:var(--primary-color)}
+        tr:hover{background-color:var(--hover-bg-color)}
+        .item-name{display:flex;align-items:center; gap: 8px;}
+        .item-name a{color:var(--text-color);text-decoration:none;font-weight:500;cursor:pointer}
+        .item-name a:hover{text-decoration:underline;color:var(--primary-color)}
+        .item-folder .item-name .feather{color:var(--folder-icon-color)}
+        .item-file .item-name .feather{color:var(--file-icon-color)}
+        .actions{text-align:right;white-space:nowrap}.actions .btn{background:none;border:none;cursor:pointer;padding:4px;color:#6c757d;display:inline-flex}.actions .btn:hover{color:var(--primary-color)}.actions form{display:inline}
+        .batch-actions{display:flex;gap:10px}.batch-actions button{background-color:#6c757d;color:white;border:none;border-radius:5px;cursor:pointer;font-size:.9rem;padding:8px 12px}
+        .flash{padding:1rem;margin-bottom:1rem;border:1px solid transparent;border-radius:.25rem}.flash-success{color:#0f5132;background-color:#d1e7dd;border-color:#badbcc}.flash-danger{color:#842029;background-color:#f8d7da;border-color:#f5c2c7}.flash-warning{color:#664d03;background-color:#fff3cd;border-color:#ffecb5}
+        .fancybox__content { background: #282c34; color: #abb2bf; padding: 20px; max-width: 90vw; max-height: 85vh; overflow-y: auto; }
+        .fancybox__content pre { margin: 0; padding: 0; white-space: pre-wrap; word-break: break-all; font-family: 'Consolas', 'Monaco', 'Menlo', monospace; font-size: 14px; }
+    </style>
+</head>
+<body>
+    <header>
+        <a href="{{ url_for('index') }}" class="logo">文件中心</a>
+        <form action="{{ url_for('search') }}" method="get" class="search-form">
+            <input type="hidden" name="path" value="{{ current_path }}">
+            <input type="search" name="q" placeholder="在当前目录及子目录中搜索..." required>
+            <button type="submit" title="搜索"><i data-feather="search"></i></button>
+        </form>
+        {% if session.logged_in %}
+        <a href="{{ url_for('logout') }}" class="logout-btn" title="登出">
+            <i data-feather="log-out"></i>
+            <span>登出</span>
+        </a>
+        {% endif %}
+    </header>
+    <div class="main-content">
+        <nav class="sidebar">
+            <form action="{{ url_for('upload', path=current_path) }}" class="dropzone" id="my-dropzone"><div class="dz-message" data-dz-message><span>将文件拖至此处<br>或点击上传</span></div></form>
+            <button onclick="showCreateFolderPrompt()">新建文件夹</button>
+            <div class="upload-history"><h4>上传历史 <a href="#" class="clear-btn" onclick="clearUploadHistory(event)">清空</a></h4><ul id="upload-history-list"></ul></div>
+        </nav>
+        <main class="content-area">
+            <div class="toolbar">
+                <nav class="breadcrumbs" aria-label="breadcrumb"><ol>{% for crumb in breadcrumbs %}<li><a href="{{ url_for('index', subpath=crumb.path) }}">{{ crumb.name }}</a></li>{% endfor %}</ol></nav>
+                <div class="batch-actions" id="batch-actions" style="display: none;">
+                    <button id="batch-delete-btn">批量删除</button>
+                    <button id="batch-download-btn">打包下载</button>
+                </div>
+            </div>
+            {% with messages = get_flashed_messages(with_categories=true) %}{% if messages %}{% for category, message in messages %}<div class="flash flash-{{ category }}">{{ message }}</div>{% endfor %}{% endif %}{% endwith %}
+            <form id="multi-select-form" method="post">
+                <input type="hidden" name="current_path" value="{{ current_path }}">
+                <table>
+                    <thead>
+                        <tr>
+                            <th style="width: 2%;"><input type="checkbox" id="select-all"></th>
+                            <th><a href="{{ url_for('index', subpath=current_path, sort_by='name', order='desc' if sort_by == 'name' and order == 'asc' else 'asc') }}">名称 {% if sort_by == 'name' %}<i data-feather="{{ 'chevron-up' if order == 'asc' else 'chevron-down' }}"></i>{% endif %}</a></th>
+                            <th style="width: 10%;"><a href="{{ url_for('index', subpath=current_path, sort_by='size', order='desc' if sort_by == 'size' and order == 'asc' else 'asc') }}">大小 {% if sort_by == 'size' %}<i data-feather="{{ 'chevron-up' if order == 'asc' else 'chevron-down' }}"></i>{% endif %}</a></th>
+                            <th style="width: 15%;"><a href="{{ url_for('index', subpath=current_path, sort_by='date', order='desc' if sort_by == 'date' and order == 'asc' else 'asc') }}">修改日期 {% if sort_by == 'date' %}<i data-feather="{{ 'chevron-up' if order == 'asc' else 'chevron-down' }}"></i>{% endif %}</a></th>
+                            <th class="actions" style="width: 10%;">操作</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in items %}
+                        <tr class="{{ 'item-folder' if item.is_dir else 'item-file' }}">
+                            <td><input type="checkbox" class="item-checkbox" name="selected_items" value="{{ (current_path + '/' if current_path else '') + item.name }}"></td>
+                            <td class="item-name">
+                                <i data-feather="{{ 'folder' if item.is_dir else 'file' }}"></i>
+                                {% if item.is_dir %}
+                                    <a href="{{ url_for('index', subpath=(current_path + '/' if current_path else '') + item.name) }}">{{ item.name }}</a>
+                                {% elif item.is_image %}
+                                    <a href="javascript:;" data-fancybox="gallery" data-type="image" data-src="{{ url_for('view_file', filepath=(current_path + '/' if current_path else '') + item.name) }}">{{ item.name }}</a>
+                                {% elif item.is_text %}
+                                    <a href="javascript:;" data-fancybox data-type="ajax" data-src="{{ url_for('get_text_content', filepath=(current_path + '/' if current_path else '') + item.name) }}">{{ item.name }}</a>
+                                {% else %}
+                                    <span>{{ item.name }}</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ item.human_size }}</td>
+                            <td>{{ item.modified }}</td>
+                            <td class="actions">
+                                {% if not item.is_dir %}<a href="{{ url_for('download', filepath=(current_path + '/' if current_path else '') + item.name) }}" class="btn" title="下载"><i data-feather="download"></i></a>{% endif %}
+                                <button type="button" class="btn" title="重命名" onclick="showRenamePrompt('{{ (current_path + '/' if current_path else '') + item.name }}', '{{ item.name }}')"><i data-feather="edit-2"></i></button>
+                                <form action="{{ url_for('delete') }}" method="post" onsubmit="return confirm('确定要删除 \'{{ item.name }}\' 吗？');" style="display:inline;"><input type="hidden" name="path" value="{{ (current_path + '/' if current_path else '') + item.name }}"><button type="submit" class="btn" title="删除"><i data-feather="trash-2"></i></button></form>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </form>
+            {% if not items %}<p style="text-align: center; color: #6c757d; margin-top: 40px;">此文件夹为空</p>{% endif %}
+        </main>
+    </div>
+    <form id="createFolderForm" action="{{ url_for('create_folder') }}" method="post" style="display:none;"><input type="hidden" name="path" value="{{ current_path }}"><input type="text" name="folder_name" id="folder_name_input"></form>
+    <form id="renameForm" action="{{ url_for('rename') }}" method="post" style="display:none;"><input type="hidden" name="path" value="{{ current_path }}"><input type="hidden" name="old_name" id="old_name_input"><input type="text" name="new_name" id="new_name_input"></form>
+    <script src="{{ url_for('static', filename='js/fancybox.umd.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/dropzone.min.js') }}"></script>
+    <script>
+        // JS代码与上一版相同，此处保持不变
+        Fancybox.bind("[data-fancybox]",{Toolbar:{display:{left:[],middle:[],right:["close"],},},on:{'reveal':(fancybox,slide)=>{if(slide.type==='ajax'){slide.contentEl.innerHTML='<pre>'+slide.contentEl.innerHTML+'</pre>';}}}});
+        document.addEventListener("DOMContentLoaded",function(){const e=document.getElementById("select-all"),t=document.querySelectorAll(".item-checkbox"),n=document.getElementById("batch-actions"),o=document.getElementById("batch-delete-btn"),a=document.getElementById("batch-download-btn"),i=document.getElementById("multi-select-form");function l(){const e=Array.from(t).some(e=>e.checked);n.style.display=e?"flex":"none"}e.addEventListener("change",function(){t.forEach(t=>{t.checked=e.checked}),l()}),t.forEach(n=>{n.addEventListener("change",function(){e.checked=Array.from(t).every(e=>e.checked),l()})}),o.addEventListener("click",function(){const e=document.querySelectorAll(".item-checkbox:checked").length;e>0&&confirm(`确定要删除选中的 ${e} 个项目吗？`)&&(i.action="{{url_for('delete_multiple')}}",i.submit())}),a.addEventListener("click",function(){i.action="{{url_for('zip_download')}}",i.submit()}),l()});
+        const MAX_HISTORY_ITEMS=10,historyListElement=document.getElementById("upload-history-list");function loadUploadHistory(){historyListElement.innerHTML="";const e=JSON.parse(localStorage.getItem("uploadHistory")||"[]");e.forEach(e=>{const t=document.createElement("li");t.textContent=e,t.title=e,historyListElement.appendChild(t)})}function addFileToHistory(e){let t=JSON.parse(localStorage.getItem("uploadHistory")||"[]");t.unshift(e),t=t.slice(0,MAX_HISTORY_ITEMS),localStorage.setItem("uploadHistory",JSON.stringify(t)),loadUploadHistory()}function clearUploadHistory(e){e.preventDefault(),confirm("确定要清空上传历史吗？")&&(localStorage.removeItem("uploadHistory"),loadUploadHistory())}Dropzone.options.myDropzone={paramName:"file",maxFilesize:1024,timeout:3e5,dictDefaultMessage:"",init:function(){this.on("success",function(e,t){"success"===t.status&&t.filename&&addFileToHistory(t.filename)}),this.on("queuecomplete",function(e){setTimeout(()=>{location.reload()},500)}),this.on("error",function(e,t){alert("上传失败: "+(t.message||"未知错误"))})}},feather.replace(),document.addEventListener("DOMContentLoaded",loadUploadHistory);function showCreateFolderPrompt(){const e=prompt("请输入新文件夹的名称：");e&&(document.getElementById("folder_name_input").value=e,document.getElementById("createFolderForm").submit())}function showRenamePrompt(e,t){const o=prompt("请输入新的名称：",t);o&&o!==t&&(document.getElementById("old_name_input").value=e,document.getElementById("new_name_input").value=o,document.getElementById("renameForm").submit())}
+    </script>
+</body>
+</html>

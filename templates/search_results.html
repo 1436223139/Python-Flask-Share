@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>搜索结果 - {{ query }}</title>
+    <script src="{{ url_for('static', filename='js/feather.min.js') }}"></script>
+    <style>
+        :root{--primary-color:#007bff;--background-color:#f8f9fa;--text-color:#212529;--border-color:#dee2e6;--hover-bg-color:#e9ecef;--header-height:60px;--folder-icon-color:#007bff;--file-icon-color:#6c757d}
+        body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;margin:0;background-color:var(--background-color);color:var(--text-color);}
+        header{height:var(--header-height);background-color:#fff;border-bottom:1px solid var(--border-color);display:flex;align-items:center;padding:0 24px;flex-shrink:0}
+        .logo{font-size:1.5rem;font-weight:600;color:var(--primary-color);text-decoration:none;margin-right:auto}
+        .logout-btn { margin-left: 20px; color: var(--text-color); text-decoration: none; display: flex; align-items: center; gap: 5px; }
+        .logout-btn:hover { color: var(--primary-color); }
+        .content-area{padding:24px;max-width:1200px;margin:0 auto;}
+        .results-header { margin-bottom: 24px; }
+        .results-header h1 { font-size: 1.8rem; margin-bottom: 8px; word-break: break-all; }
+        .results-header h1 span { font-weight: normal; color: #6c757d; }
+        .results-header .back-link { color: var(--primary-color); text-decoration: none; }
+        table{width:100%;border-collapse:collapse}
+        th,td{padding:12px 15px;text-align:left;border-bottom:1px solid var(--border-color);vertical-align:middle}
+        th{background-color:#f8f9fa;font-weight:600}
+        tr:hover{background-color:var(--hover-bg-color)}
+        .item-name-cell{display:flex;align-items:center;gap:8px}
+        .item-name-cell a{color:var(--text-color);text-decoration:none;font-weight:500;word-break:break-all;}
+        .item-name-cell a:hover{text-decoration:underline;color:var(--primary-color)}
+        .item-folder .item-name-cell .feather{color:var(--folder-icon-color)}
+        .item-file .item-name-cell .feather{color:var(--file-icon-color)}
+        .item-path { font-size: 0.85rem; color: #6c757d; margin-top: 2px; }
+        .actions{text-align:right;white-space:nowrap}
+        .actions .btn{background:none;border:none;cursor:pointer;padding:4px;color:#6c757d;display:inline-flex}
+        .actions .btn:hover{color:var(--primary-color)}
+    </style>
+</head>
+<body>
+    <header>
+        <a href="{{ url_for('index') }}" class="logo">文件中心</a>
+        {% if session.logged_in %}
+        <a href="{{ url_for('logout') }}" class="logout-btn" title="登出"><i data-feather="log-out"></i><span>登出</span></a>
+        {% endif %}
+    </header>
+    <main class="content-area">
+        <div class="results-header">
+            <h1><span>搜索结果: </span>"{{ query }}"</h1>
+            <a href="{{ url_for('index', subpath=current_path) }}" class="back-link">&larr; 返回到 {{ '主目录' if not current_path else current_path }}</a>
+        </div>
+
+        {% if results %}
+        <table>
+            <thead>
+                <tr>
+                    <th>名称</th>
+                    <th style="width: 15%;">类型</th>
+                    <th class="actions" style="width: 10%;">操作</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in results %}
+                <tr class="{{ 'item-folder' if item.is_dir else 'item-file' }}">
+                    <td>
+                        <div class="item-name-cell">
+                            <i data-feather="{{ 'folder' if item.is_dir else 'file' }}"></i>
+                            <div>
+                                {% if item.is_dir %}
+                                    <a href="{{ url_for('index', subpath=item.path) }}">{{ item.name }}</a>
+                                {% else %}
+                                    <a href="{{ url_for('download', filepath=item.path) }}" title="点击下载">{{ item.name }}</a>
+                                {% endif %}
+                                <div class="item-path">路径: {{ item.parent if item.parent != '.' else '主目录' }}</div>
+                            </div>
+                        </div>
+                    </td>
+                    <td>{{ '文件夹' if item.is_dir else '文件' }}</td>
+                    <td class="actions">
+                        {% if not item.is_dir %}
+                        <a href="{{ url_for('download', filepath=item.path) }}" class="btn" title="下载"><i data-feather="download"></i></a>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <p style="text-align: center; color: #6c757d; margin-top: 40px;">在当前目录及子目录中，未找到包含 “{{ query }}” 的项目。</p>
+        {% endif %}
+    </main>
+    <script>feather.replace()</script>
+</body>
+</html>

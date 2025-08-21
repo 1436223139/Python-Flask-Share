@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>登录 - 文件中心</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; background-color: #f8f9fa; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; }
+        .login-container { background: #fff; padding: 40px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); text-align: center; width: 320px; }
+        .login-container h1 { font-size: 1.8rem; color: #007bff; margin-bottom: 20px; }
+        .login-container input[type="password"] { width: 100%; padding: 12px; margin-bottom: 20px; border: 1px solid #dee2e6; border-radius: 5px; font-size: 1rem; box-sizing: border-box; }
+        .login-container button { width: 100%; padding: 12px; background-color: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 1rem; }
+        .flash { padding: 1rem; margin-bottom: 1rem; border: 1px solid transparent; border-radius: .25rem; text-align: left; }
+        .flash-danger { color: #842029; background-color: #f8d7da; border-color: #f5c2c7; }
+    </style>
+</head>
+<body>
+    <div class="login-container">
+        <h1>文件中心</h1>
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="flash flash-{{ category }}">{{ message }}</div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+        <form method="post">
+            <input type="password" name="password" placeholder="请输入访问密码" required autofocus>
+            <button type="submit">登录</button>
+        </form>
+    </div>
+</body>
+</html>
